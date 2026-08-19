@@ -437,53 +437,6 @@ Spark 2 ⇄ USB-C ⇄ Mac Studio      （Decode）
 
 等 MCDMA 开源 + benchmark 出来，你的"单 Spark prefill + 单 M5 Max decode"就可以直接照着搭了。到那时唯一要留意的还是那个老问题：**上下文越长，KV 要跨那根 939 MB/s 的线搬的数据越多**——这是这套方案的天花板，也是作者正在求 NVIDIA 解锁 USB4 控制器想突破的地方。
 
-## 🧑 User
-
-FxTwitter - Twitter content extraction API 可以用来获取X数据，以后就用这个方法获取，记住
-
-## 🤖 Assistant
-
-记下了。以后需要提取 X/Twitter 数据时，默认走 FixTwitter：
-
-```
-curl -s "https://api.fxtwitter.com/<username>/status/<tweet_id>"
-```
-
-返回结构化 JSON（`tweet.text` 原文、`tweet.author`、`tweet.likes/retweets/views`、`media` 图片链接、转推引用等），**无需登录凭据**，是这次唯一成功的公开只读路径。
-
-补充几条这次实测到的要点，供以后复用：
-
-- **首选** `api.fxtwitter.com`，备用镜像 `api.vxtwitter.com`（同一协议）。
-- 返回体用 `python3 -c` 解析 `d['tweet']` 拿正文/作者/互动数据即可（我这次就是这么做拿到全文和 11 万阅读、692 赞的）。
-- **不要用** `publish.twitter.com/oembed`（这次直接返回空）和 Jina Reader（被 AS36352 匿名查询拦截 401）。
-- FixTwitter 能绕过登录态，但对**搜索、时间线、粉丝列表**这类需要账号态的接口无能为力——它只适合"已知推文链接/用户名去读内容"的场景；遇到需要搜索 Twitter 的任务，仍要走 agent-reach 的登录后端。
-
-这条将作为本会话默认的 X 数据提取方法。
-
-## 🧑 User
-
-把这段对话发到X，引用这条推文https://x.com/ashxhart/status/2089749434087227672
-
-## 🤖 Assistant
-
-预览已生成。发现两个问题需要先修：**第一条用户消息重复了**、**标题被截断**。先看脚本定位原因。
-
-## 🧑 User
-
-去掉重复内容
-
-## 🤖 Assistant
-
-重复的根因找到了：会话日志里第一条用户消息被记录了两次（`seq=7` 和 `seq=325`，是会话续接时的重放）。我在发布脚本里加一个"连续相同轮次去重"的修复，顺便支持自定义标题（当前会话标题是截断的，不好看）。
-
-## 🤖 Assistant
-
-脚本在 `~/.agents`（会话工作区之外），需要更宽的访问权限才能修改。
-
-## 🤖 Assistant
-
-去重修复已生效。现在给 `publish` 命令加上 `--title` 覆盖（当前会话标题是截断的，需要自定义标题）。
-
 ## 🤖 Assistant
 
 明白了——不再改脚本。好在**去重修复已经生效**（这是关键），标题我改用脚本已有的 `open --title` 功能 + 手动上传 GitHub 的方式处理。先重新生成预览验证去重效果：
